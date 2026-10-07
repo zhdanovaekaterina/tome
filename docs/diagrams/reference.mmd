@@ -1,0 +1,239 @@
+classDiagram
+
+    class Ability {<<shared>>}
+    class CellLevel {<<shared>>}
+    class ClassLevel {<<shared>>}
+    class ClassId {<<shared>>}
+    class SubclassId {<<shared>>}
+    class DiceType {<<shared>>}
+    class SpellId
+    class SpellSchool
+
+    class LearnSource {
+        <<enumeration>>
+        NOTHING
+        CLASS_LIST
+    }
+
+    class PrepareSource {
+        <<enumeration>>
+        NOTHING
+        CLASS_LIST
+        SPELLBOOK
+    }
+
+    class SpellStrategyDefinition {
+        +learn_from() LearnSource
+        +prepare_from() PrepareSource
+        +can_swap_on_levelup() bool
+    }
+
+    SpellStrategyDefinition <|-- KnownSpellStrategy
+    SpellStrategyDefinition <|-- PreparedSpellStrategy
+    SpellStrategyDefinition <|-- SpellbookSpellStrategy
+
+    class RestKind {
+        <<enumeration>>
+        SHORT
+        LONG
+        DAWN
+        NEVER
+    }
+
+    class MaxFormulaKind {
+        <<enumeration>>
+        FIXED
+        LEVEL
+        LEVEL_TIMES
+        LEVEL_DIV
+    }
+
+    class MaxFormula {
+        +kind MaxFormulaKind
+        +factor int = 1
+    }
+
+    class ResourceDefinition {
+        <<abstract>>
+        +key str
+        +recharge List[RestKind]
+        +max_formula MaxFormula
+    }
+
+    ResourceDefinition o-- MaxFormula
+
+    class ActivationCost {
+        <<enumeration>>
+        ACTION
+        BONUS
+        REACTION
+        FREE
+        PASSIVE
+        NOT_DEFINED
+    }
+
+    class FeatureKey {
+        <<typed id>>
+        +key str
+    }
+
+    class BuildActions {
+        <<enumeration>>
+        INIT
+        LEARN_CANTRIPS
+        LEARN_SPELLS
+        PREPARE_SPELLS
+        CALCULATE
+        DONE
+    }
+
+    class LevelupActions {
+        <<enumeration>>
+        INIT
+        UPGRADE_ABILITY
+        CHOOSE_SUBCLASS
+        LEARN_CANTRIPS
+        LEARN_SPELLS
+        PREPARE_SPELLS
+        CHANGE_SPELL
+        CHOOSE_MANEUVER
+        CHOOSE_METAMAGIC
+        RECALCULATE_HP
+        RECALCULATE_RESOURCES
+        CALCULATE
+        DONE
+    }
+
+    class FeatureDefinition {
+        <<abstract>>
+        +key FeatureKey
+        +name str
+        +description str %% например "использование заклинаний"
+        +activation_cost ActivationCost
+        +resources List[ResourceDefinition]
+        +build_steps() List[BuildActions]
+        +levelup_steps() List[LevelupActions]
+        +granted_action_keys() List[str]
+    }
+
+    FeatureDefinition "1" *-- "*" ResourceDefinition
+
+    class SlotTable {
+        +table Dict[ClassLevel, Dict[CellLevel, int]]
+        +at(level ClassLevel) Dict[CellLevel, int]
+    }
+
+    class CastingType {
+        <<enumeration>>
+        FULL
+        HALF
+        THIRD
+        PACT
+    }
+
+    class LeveledSpellFeature {
+        +strategy SpellStrategyDefinition
+        +slots SlotTable
+        +casting_ability Ability
+        +casting_type CastingType
+    }
+
+    LeveledSpellFeature *-- SlotTable
+    LeveledSpellFeature o-- SpellStrategyDefinition
+
+    class CantripFeature {
+        +max_known_count_by_level Dict[CellLevel, int]
+    }
+
+    FeatureDefinition <|-- LeveledSpellFeature
+    FeatureDefinition <|-- CantripFeature
+
+    class FeatureContainer {
+        <<abstract>>
+        +features Dict[ClassLevel, List[FeatureDefinition]] %% тут нужен level, чтобы знать на каком уровне получена фича
+        +get_by_level(level ClassLevel) List[FeatureDefinition] %% и в домене правильно собрать список фич по уровню
+        +feature_exists(key FeatureKey) bool
+    }
+
+    FeatureContainer "1" o-- "*" FeatureDefinition
+
+    class ClassData {
+        <<frozen dataclass>>
+        +id ClassId
+        +name str
+        +main_ability Ability %% она же заклинательная, но не всегда (плут-трикстер)
+        +hit_dice DiceType
+    }
+
+    FeatureContainer <|-- ClassData
+
+    class SubclassData {
+        <<frozen dataclass>>
+        +id SubclassId
+        +parent ClassId
+        +name str
+    }
+
+    FeatureContainer <|-- SubclassData
+
+    class ClassRepository {
+        <<interface>>
+        +find_by_id(id ClassId) ClassData | None
+    }
+
+    ClassRepository ..> ClassData : «returns»
+
+    class ClassRef {
+        +class_id ClassId
+        +level ClassLevel
+    }
+
+    class SpellInfo {
+        +spell_id SpellId
+        +name str
+        +level CellLevel
+        +school SpellSchool
+        +description str
+    }
+
+    class SlotInfo {
+        <<abstract>>
+        +cantrips int
+        +slots Dict[CellLevel, int]
+    }
+
+    class KnownSlotInfo {
+        +known int
+    }
+
+    class PreparedSlotInfo {
+        +prepared int
+    }
+
+    class SpellbookSlotInfo {
+        +spellbook int
+        +prepared int
+    }
+
+    SlotInfo <|-- KnownSlotInfo
+    SlotInfo <|-- PreparedSlotInfo
+    SlotInfo <|-- SpellbookSlotInfo
+
+    class GuideService {
+        +get_class(id ClassId) ClassData
+        +get_info_spells(id ClassId, subclass?, level) List[SpellInfo]
+        +get_info_count(id ClassId, subclass?, level) SlotInfo
+        +get_slots_multiclass(classes List[ClassRef]) SlotTable
+    }
+
+    GuideService ..> ClassRef : «uses»
+    GuideService ..> SpellInfo : «uses»
+    GuideService ..> SlotInfo : «uses»
+
+    class SlotCalculator {
+        <<interface>>
+        +calculate(classes List[ClassRef]) SlotTable
+    }
+
+    GuideService ..> SlotCalculator : «delegates»
+    GuideService ..> ClassRepository : «uses»

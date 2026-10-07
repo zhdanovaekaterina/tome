@@ -1,0 +1,247 @@
+classDiagram
+
+%% SPELL DATA
+
+class DamageType {
+<<enumeration>>
+FIRE
+FROZEN
+...
+}
+
+class DiceRoll {
+<<shared>>
+}
+
+class ResolutionKind {
+<<enumeration>>
+ATTACK_ROLL
+SAVING_THROW
+AUTO
+}
+
+class EffectKind {
+<<enumeration>>
+DAMAGE
+HEAL
+BUFF
+DEBUFF
+CONTROL
+SUMMON
+UTILITY
+}
+
+class Resolution {
++kind ResolutionKind
++damage_type DamageType | None
++throw_ability Ability | None
+}
+
+Resolution o-- ResolutionKind
+Resolution o-- DamageType
+Resolution o-- Ability
+
+class Upcast {
++add_roll_per_cell DiceRoll | None
++add_targets_per_cell int | None
++add_area_size int | None
+}
+
+Upcast o-- DiceRoll
+
+class Effect {
++kind EffectKind
++roll DiceRoll | None
++half_on_success bool
++upcast Upcast | None
+}
+
+Effect o-- EffectKind
+Effect o-- DiceRoll
+Effect o-- Upcast
+
+class ResolutionGroup {
++resolution Resolution | None
++effects List[Effect]
++repeat int
+}
+
+ResolutionGroup o-- Resolution
+ResolutionGroup "1" *-- "*" Effect
+
+class MassMode {
+<<enumeration>>
+ONE
+MULTIPLE
+AREA
+}
+
+class Area {
+<<enumeration>>
+CUBE
+CIRCLE
+}
+
+class SpellMass {
++mode MassMode
++target_count int | None
++area Area | None
++area_size int | None
++max_targets_in_area int | None
++upcast Upcast | None
+}
+
+SpellMass o-- MassMode
+SpellMass o-- Area
+SpellMass o-- Upcast
+
+class SpellSchool {
+<<enumeration>>
+EVOCATION
+TRANSMUTATION
+...
+}
+
+class MaterialComponent {
++description str
++cost_gold int | None
+}
+
+class Components {
++verbal bool
++somatic bool
++material MaterialComponent | None
+}
+
+Components o-- MaterialComponent
+
+class TimeToCast {
+<<abstract>>
+}
+
+class Reaction {
++description str
+}
+
+class TimeUnit {
+<<enumeration>>
+MINUTE
+HOUR
+DAY
+ROUND
+SECOND
+}
+
+class CastingTime {
++value int
++unit TimeUnit
+}
+
+CastingTime o-- TimeUnit
+
+TimeToCast <|-- BaseAction
+TimeToCast <|-- BonusAction
+TimeToCast <|-- Reaction
+TimeToCast <|-- CastingTime
+
+class Distance {
+<<abstract>>
+}
+
+class DistanceUnit {
+<<enumeration>>
+FEET
+MILES
+}
+
+class RemoteDistance {
++value int
++unit DistanceUnit
+}
+
+class SelfAreaDistance {
++value int
++unit DistanceUnit
++area Area
+}
+
+SelfAreaDistance o-- Area
+RemoteDistance o-- DistanceUnit
+SelfAreaDistance o-- DistanceUnit
+
+Distance <|-- Self
+Distance <|-- Touch
+Distance <|-- RemoteDistance
+Distance <|-- SelfAreaDistance
+
+class DurationKind {
+<<enumeration>>
+INSTANT
+ROUNDS
+TIME
+SPECIAL
+UNTIL_DISPELLED
+}
+
+class Duration {
++kind DurationKind
++value int | None
++unit TimeUnit | None
++description str | None
+}
+
+Duration o-- DurationKind
+Duration o-- TimeUnit
+
+class Source {
+<<enumeration>>
+PH
+XGE
+...
+}
+
+class SpellId {
+<<value object>>
++id int
+}
+
+class SpellData {
+%% frozen dataclass
++id SpellId %% typedId
++alias str
++title str
++description str
++level int
++school SpellSchool
++components Components
++need_concentration bool
++can_be_ritual bool
++mass SpellMass
++time_to_cast TimeToCast
++distance Distance
++duration Duration
++sources List[Source]
++resolutions List[ResolutionGroup]
++__post_init__() %% валидация
++__str__()
+}
+
+SpellData *-- SpellId
+SpellData o-- SpellSchool
+SpellData *-- Components
+SpellData "1" o-- "*" ResolutionGroup
+SpellData *-- SpellMass
+SpellData *-- TimeToCast
+SpellData *-- Distance
+SpellData *-- Duration
+SpellData "1" o-- "*" Source
+
+class SpellRepository {
+<<interface>>
++find(id SpellId) SpellData
++list_for_class(alias, level) List[SpellData]
++list_for_subclass(alias, level) List[SpellData]
++list_for_race(alias) List[SpellData]
+}
+
+SpellRepository ..> SpellData

@@ -1,0 +1,49 @@
+classDiagram
+    
+    class Ability {
+        <<enumeration>>
+        STR
+        DEX
+        CON
+        INT
+        WIS
+        CHA
+    }
+
+    class DiceType {
+        <<enumeration>>
+        D4
+        D6
+        D8
+        D10
+        D12
+        D20
+        D100
+    }
+
+    class DiceRoll {
+        %% frozen dataclass
+        +dice_count int %% >=1
+        +dice_type DiceType
+        +__str__() %% aka "2d6"
+        +__add__()
+        +__multiply__()
+    }
+
+    DiceRoll o-- DiceType
+
+    class CellLevel {
+        +int %% от 1 до 9
+    }
+
+    class ClassLevel {
+        +int %% от 1 до 20
+    }
+
+    class ClassId {
+        +id str %% ранее алиас
+    }
+
+    class SubclassId {
+        +id str %% ранее алиас
+    }
