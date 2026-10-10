@@ -2,10 +2,9 @@
 
 > Бэкенд помощника для игровых сессий в настольных ролевых играх: лист персонажа, управление заклинаниями и ресурсами для D&D 5e.
 
-[![tests](https://github.com/zhdanovaekaterina/tome/actions/workflows/tests/badge.svg)](https://github.com/zhdanovaekaterina/tome/actions/workflows/tests)
-[![coverage](https://codecov.io/gh/zhdanovaekaterina/tome/branch/main/graph/badge.svg)](https://codecov.io/gh/zhdanovaekaterina/tome)
 [![python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![Changelog](https://img.shields.io/badge/changelog-v2.1.0-blue)](./CHANGELOG.md)
 
 ---
 
