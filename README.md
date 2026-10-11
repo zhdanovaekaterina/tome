@@ -4,7 +4,8 @@
 
 [![python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/)
 [![license](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Changelog](https://img.shields.io/badge/changelog-v2.1.0-blue)](./CHANGELOG.md)
+[![changelog](https://img.shields.io/badge/changelog-orange)](./CHANGELOG.md)
+[![roadmap](https://img.shields.io/badge/roadmap-violet)](./docs/roadmap.md)
 
 ---
 
@@ -22,7 +23,7 @@
 - планировщик кампании, редактор карт,
 - поддержка других систем (Pathfinder 2e, Cyberpunk RED).
 
-**Статус:** в разработке. Начинаем с **D&D 5e**, трёх классов (волшебник, клирик, бард), уровни 1–5.
+**Статус:** в разработке. Начинаем с **D&D 5e**, одного класса (волшебник), уровни 1–5. Без мультикласса.
 
 ---
 
@@ -56,51 +57,40 @@
 
 ```
 ┌─────────────────────────────────────┐
-│  API (FastAPI)                      │  ← delivery
-│  routers, schemas, deps             │
+│ API (FastAPI)                       │ ← delivery
+│ routers, schemas, deps              │
 └─────────────┬───────────────────────┘
               │
 ┌─────────────▼───────────────────────┐
-│  Domain                             │  ← бизнес-логика
-│  CharacterModel, StateMachine,      │
-│  CastService, LevelUpService        │
+│ Application                         │ ← use cases, оркестрация
+│ BuildService, LevelUpService,       │
+│ CastService, RestService,           │
+│ SpellListService, CharacterFactory  │
 └─────────────┬───────────────────────┘
               │
 ┌─────────────▼───────────────────────┐
-│  Reference                          │  ← справочники
-│  SpellData, ClassData,              │
-│  LevelProfile, SpellCapability      │
+│ Domain                              │ ← бизнес-логика персонажа
+│ CharacterModel, StateMachine,       │
+│ Actions, CharacterSpells            │
 └─────────────┬───────────────────────┘
               │
 ┌─────────────▼───────────────────────┐
-│  Shared                             │  ← value-objects
-│  DiceRoll, Ability, SpellId         │
+│ Reference                           │ ← справочники
+│ SpellData, ClassData,               │
+│ LevelProfile, SpellStrategy         │
+└─────────────┬───────────────────────┘
+              │
+┌─────────────▼───────────────────────┐
+│ Shared                              │ ← value-objects
+│ DiceRoll, Ability, SpellId          │
 └─────────────────────────────────────┘
 
 Identity (аутентификация) — отдельный, параллельный слой.
 Infrastructure реализует порты, объявленные в слоях выше.
 ```
 
-**Правило зависимостей:** `API → Domain → Reference → Shared`. Циклов нет.
-
----
-
-## Быстрый старт
-
-*раздел в разработке*
-
-### Требования
-
-- Python 3.14+
-- Docker + Docker Compose
-
----
-
-## Примеры использования
-
-*раздел в разработке*
-
-Полный справочник API: http://localhost:8000/docs
+**Правило зависимостей:** `API → Application → Domain → Reference → Shared`. Циклов нет.
+Domain не знает про Application, Application не знает про API, Reference не знает про Domain.
 
 ---
 
@@ -109,13 +99,12 @@ Infrastructure реализует порты, объявленные в слоя
 ```
 src/
 ├── api                 # FastAPI роутеры, схемы, DI
-├── core
-│   ├── domain          # CharacterModel, StateMachine, сервисы
-│   ├── identity        # аутентификация (AuthService, TokenService)
-│   ├── ports           # интерфейсы портов
-│   ├── reference       # справочники (SpellData, ClassData, LevelProfile)
-│   └── shared          # value-objects (DiceRoll, Ability, SpellId)
-└── infrastructure      # SQLAlchemy, Redis, реализации портов
+├── application         # сервисы, use cases
+├── domain              # CharacterModel, StateMachine
+├── identity            # аутентификация (AuthService, TokenService)
+├── infrastructure      # SQLAlchemy, Redis, реализации портов
+├── reference           # справочники (SpellData, ClassData, LevelProfile)
+└── shared              # value-objects (DiceRoll, Ability, SpellId)
 tests/
 docs/                   # архитектура, ADR, доменная модель
 ```
@@ -125,9 +114,9 @@ docs/                   # архитектура, ADR, доменная моде
 ## Scope (MVP)
 
 **Входит:**
-- Классы: волшебник (spellbook), клирик (prepared), бард (known)
+- Класс: волшебник (spellbook)
 - Уровни 1–5
-- ~30 уникальных заклинаний с пересечениями
+- 20 заклинаний
 - Use cases: build, level-up, cast, short rest, long rest
 - JWT-аутентификация (register, login, logout, refresh)
 - Postgres для постоянного хранения, Redis для черновиков
